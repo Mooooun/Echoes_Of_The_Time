@@ -2,32 +2,25 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TimeBody : MonoBehaviour {
-
+public class TimeBody : MonoBehaviour
+{
     bool isRewinding = false;
-
-    public float recordTime = 5f;
-
-    [SerializeField]
-    public GameObject noirEtblancSysteme;
+    float recordTime;
 
     List<PointInTime> pointsInTime;
-
     Rigidbody rb;
 
     // Use this for initialization
-    void Start () {
+    void Start()
+    {
         pointsInTime = new List<PointInTime>();
         rb = GetComponent<Rigidbody>();
-        noirEtblancSysteme.SetActive(false);
-    }
-    
-    // Update is called once per frame
-    void Update () {
-        // Key handling code removed.
     }
 
-    void FixedUpdate ()
+    // Update is called once per frame
+    void Update() { }
+
+    void FixedUpdate()
     {
         if (isRewinding)
             Rewind();
@@ -35,7 +28,7 @@ public class TimeBody : MonoBehaviour {
             Record();
     }
 
-    void Rewind ()
+    void Rewind()
     {
         if (pointsInTime.Count > 0)
         {
@@ -43,13 +36,14 @@ public class TimeBody : MonoBehaviour {
             transform.position = pointInTime.position;
             transform.rotation = pointInTime.rotation;
             pointsInTime.RemoveAt(0);
-        } else
+        }
+        else
         {
             StopRewind();
         }
     }
 
-    void Record ()
+    void Record()
     {
         if (pointsInTime.Count > Mathf.Round(recordTime / Time.fixedDeltaTime))
         {
@@ -59,17 +53,20 @@ public class TimeBody : MonoBehaviour {
         pointsInTime.Insert(0, new PointInTime(transform.position, transform.rotation));
     }
 
-    public void StartRewind ()
+    public void StartRewind()
     {
         isRewinding = true;
         rb.isKinematic = true;
-        noirEtblancSysteme.SetActive(true);
     }
 
-    public void StopRewind ()
+    public void StopRewind()
     {
         isRewinding = false;
         rb.isKinematic = false;
-        noirEtblancSysteme.SetActive(false);
+    }
+
+    public void SetRewindTime(float time)
+    {
+        recordTime = time;
     }
 }

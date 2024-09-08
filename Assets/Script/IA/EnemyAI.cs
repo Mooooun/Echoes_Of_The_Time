@@ -124,9 +124,16 @@ public class EnemyAI : MonoBehaviour
         {
             isDead = true;
             animator.SetTrigger("Die");
+
+            // Disable agent and script
             agent.enabled = false;
             enabled = false;
-        } else
+
+            // Stop and disable the audio source
+            audioSource.Stop();
+            audioSource.enabled = false;
+        }
+        else
         {
             animator.SetTrigger("GetHit");
         }

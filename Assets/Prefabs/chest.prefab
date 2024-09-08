@@ -120,5 +120,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   items:
   - {fileID: 11400000, guid: 9117ef1aa7f9cd94a9020fad31d6850e, type: 2}
-  dropForce: 0
+  dropForce: 0.1
   dropOffset: 0.7

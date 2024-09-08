@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PauseMenu : MonoBehaviour
 {
@@ -17,6 +18,42 @@ public class PauseMenu : MonoBehaviour
     [SerializeField]
     private ThirdPersonOrbitCamBasic cameraScript;
 
+    [SerializeField]
+    private MoveBehaviour playerMovementScript; // Mise à jour pour utiliser MoveBehaviour
+
+    [SerializeField]
+    private Button closeOptionsButton;
+
+    [SerializeField]
+    private Button closeInventoryButton;
+
+    [SerializeField]
+    private Button closeMapButton;
+
+    [SerializeField]
+    private Button closeQuestButton;
+
+    void Start()
+    {
+        // Assurez-vous que les boutons de fermeture sont liés aux méthodes
+        if (closeOptionsButton != null)
+        {
+            closeOptionsButton.onClick.AddListener(() => CloseMenu(optionsMenu));
+        }
+        if (closeInventoryButton != null)
+        {
+            closeInventoryButton.onClick.AddListener(() => CloseMenu(inventoryMenu));
+        }
+        if (closeMapButton != null)
+        {
+            closeMapButton.onClick.AddListener(() => CloseMenu(mapMenu));
+        }
+        if (closeQuestButton != null)
+        {
+            closeQuestButton.onClick.AddListener(() => CloseMenu(questMenu));
+        }
+    }
+
     void Update()
     {
         // Gestion des entrées pour ouvrir ou fermer les menus
@@ -24,7 +61,7 @@ public class PauseMenu : MonoBehaviour
         {
             if (optionsMenu.activeSelf || inventoryMenu.activeSelf || mapMenu.activeSelf || questMenu.activeSelf)
             {
-                // Fermer tous les menus ouverts si Échap ou Tab est pressé
+                // Fermer tous les menus ouverts si Échap est pressé
                 CloseAllMenus();
             }
             else
@@ -36,27 +73,14 @@ public class PauseMenu : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            if (mapMenu.activeSelf)
+            if (mapMenu.activeSelf || questMenu.activeSelf)
             {
-                // Fermer tous les menus ouverts si Échap ou Tab est pressé
+                // Fermer tous les menus ouverts si Tab est pressé
                 CloseAllMenus();
             }
             else
             {
-
-            }
-        }
-
-        if (Input.GetKeyDown(KeyCode.Tab))
-        {
-            if (questMenu.activeSelf)
-            {
-                // Fermer tous les menus ouverts si Échap ou Tab est pressé
-                CloseAllMenus();
-            }
-            else
-            {
-
+                // Cette partie est à compléter selon les besoins spécifiques pour Tab
             }
         }
 
@@ -68,7 +92,10 @@ public class PauseMenu : MonoBehaviour
     {
         optionsMenu.SetActive(true);
         Time.timeScale = 0;
-        // Note: La variable isMenuOpened a été supprimée, aucune action n'est nécessaire ici.
+        if (playerMovementScript != null)
+        {
+            playerMovementScript.enabled = false; // Désactiver le mouvement du joueur
+        }
     }
 
     private void CloseAllMenus()
@@ -81,12 +108,36 @@ public class PauseMenu : MonoBehaviour
 
         // Réactiver le jeu
         Time.timeScale = 1;
-        // Note: La variable isMenuOpened a été supprimée, aucune action n'est nécessaire ici.
+        if (playerMovementScript != null)
+        {
+            playerMovementScript.enabled = true; // Réactiver le mouvement du joueur
+        }
+    }
+
+    private void CloseMenu(GameObject menu)
+    {
+        if (menu != null)
+        {
+            menu.SetActive(false);
+        }
+
+        // Réactiver le jeu et le mouvement du joueur si tous les menus sont fermés
+        if (!optionsMenu.activeSelf && !inventoryMenu.activeSelf && !mapMenu.activeSelf && !questMenu.activeSelf)
+        {
+            Time.timeScale = 1;
+            if (playerMovementScript != null)
+            {
+                playerMovementScript.enabled = true; // Réactiver le mouvement du joueur
+            }
+        }
     }
 
     private void CheckMenuStatus()
     {
         // Activer/désactiver la caméra en fonction de l'état des menus
-        cameraScript.enabled = !(optionsMenu.activeSelf || inventoryMenu.activeSelf || mapMenu.activeSelf || questMenu.activeSelf);
+        if (cameraScript != null)
+        {
+            cameraScript.enabled = !(optionsMenu.activeSelf || inventoryMenu.activeSelf || mapMenu.activeSelf || questMenu.activeSelf);
+        }
     }
 }

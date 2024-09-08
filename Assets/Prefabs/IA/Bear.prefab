@@ -1676,7 +1676,7 @@ MonoBehaviour:
   currentHealth: 0
   walkSpeed: 2
   chaseSpeed: 4
-  detectionRadius: 6
+  detectionRadius: 10
   attackRadius: 2.3
   attackDelay: 1.133
   damageDealt: 10
