@@ -129,12 +129,9 @@ public class EnemyAI : MonoBehaviour
             agent.enabled = false;
             enabled = false;
 
-            // Stop and destroy the audio source
+            // Stop and disable the audio source
             audioSource.Stop();
-            Destroy(audioSource);
-
-            // Destroy the enemy completely after 3 seconds (to allow death animation to play)
-            Destroy(gameObject, 3f);
+            audioSource.enabled = false;
         }
         else
         {
