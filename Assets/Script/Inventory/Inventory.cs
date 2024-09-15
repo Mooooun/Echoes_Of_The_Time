@@ -25,6 +25,9 @@ public class Inventory : MonoBehaviour
     private GameObject optionsPanel; // Référence au panel des options
 
     public Sprite emptySlotVisual;
+    public MoveBehaviour playerMovement;
+
+
 
     public static Inventory instance;
 
@@ -38,6 +41,7 @@ public class Inventory : MonoBehaviour
 
     private void Start()
     {
+      
         CloseInventory();
         RefreshContent();
     }
@@ -128,7 +132,8 @@ public class Inventory : MonoBehaviour
     private void OpenInventory()
     {
         inventoryPanel.SetActive(true);
-        Time.timeScale = 0; // Met le jeu en pause
+        playerMovement.StopMovement();
+
         isOpen = true;
     }
 
@@ -137,7 +142,7 @@ public class Inventory : MonoBehaviour
         inventoryPanel.SetActive(false);
         itemActionsSystem.actionPanel.SetActive(false);
         TooltipSystem.instance.Hide();
-        Time.timeScale = 1; // Reprend le jeu
+        playerMovement.ResumeMovement();
         isOpen = false;
     }
 

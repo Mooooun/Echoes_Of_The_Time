@@ -10,23 +10,37 @@ public class FlyBehaviour : GenericBehaviour
 
 	private int flyBool;                          // Animator variable related to flying.
 	private bool fly = false;                     // Boolean to determine whether or not the player activated fly mode.
-	private CapsuleCollider col;                  // Reference to the player capsulle collider.
+	private CapsuleCollider col;
+
+	public GameObject previewObject;                // Référence à l'objet de prévisualisation.
+	public Animator previewAnimator;               // Animator pour la prévisualisation.
+												   // Reference to the player capsulle collider.
 
 	// Start is always called after any Awake functions.
 	void Start()
 	{
-		// Set up the references.
+		// Initialiser les variables d'animation.
 		flyBool = Animator.StringToHash("Fly");
+
 		col = this.GetComponent<CapsuleCollider>();
-		// Subscribe this behaviour on the manager.
+
+		// Assurez-vous que le comportement est bien inscrit.
 		behaviourManager.SubscribeBehaviour(this);
+
+		// Trouver l'objet de prévisualisation et obtenir son Animator.
+		previewObject = GameObject.FindGameObjectWithTag("PlayerPrewiew");
+		if (previewObject != null)
+		{
+			previewAnimator = previewObject.GetComponent<Animator>();
+			Debug.Log("Objet de prévisualisation initialisé");
+		}
 	}
 
 	// Update is used to set features regardless the active behaviour.
 	void Update()
 	{
-		// Toggle fly by input, only if there is no overriding state or temporary transitions.
-		if (Input.GetButtonDown(flyButton) && !behaviourManager.IsOverriding() 
+		// Toggle fly by input.
+		if (Input.GetButtonDown(flyButton) && !behaviourManager.IsOverriding()
 			&& !behaviourManager.GetTempLockStatus(behaviourManager.GetDefaultBehaviour))
 		{
 			fly = !fly;
@@ -34,32 +48,31 @@ public class FlyBehaviour : GenericBehaviour
 			// Force end jump transition.
 			behaviourManager.UnlockTempBehaviour(behaviourManager.GetDefaultBehaviour);
 
-			// Obey gravity. It's the law!
+			// Obey gravity.
 			behaviourManager.GetRigidBody.useGravity = !fly;
 
-			// Player is flying.
 			if (fly)
 			{
-				// Register this behaviour.
 				behaviourManager.RegisterBehaviour(this.behaviourCode);
 			}
 			else
 			{
-				// Set collider direction to vertical.
 				col.direction = 1;
-				// Set camera default offset.
 				behaviourManager.GetCamScript.ResetTargetOffsets();
-
-				// Unregister this behaviour and set current behaviour to the default one.
 				behaviourManager.UnregisterBehaviour(this.behaviourCode);
 			}
 		}
 
-		// Assert this is the active behaviour
 		fly = fly && behaviourManager.IsCurrentBehaviour(this.behaviourCode);
 
-		// Set fly related variables on the Animator Controller.
+		// Mettre à jour le paramètre d'animation "Fly" pour le joueur.
 		behaviourManager.GetAnim.SetBool(flyBool, fly);
+
+		// Répliquer l'état de vol dans l'Animator de la prévisualisation.
+		if (previewAnimator != null)
+		{
+			previewAnimator.SetBool(flyBool, fly);
+		}
 	}
 
 	// This function is called when another behaviour overrides the current one.

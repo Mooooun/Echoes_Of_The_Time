@@ -2,145 +2,189 @@
 
 public class MoveBehaviour : GenericBehaviour
 {
-    public float walkSpeed = 0.15f;                 // Default walk speed.
-    public float runSpeed = 1.0f;                   // Default run speed.
-    public float sprintSpeed = 2.0f;                // Default sprint speed.
-    public float speedDampTime = 0.1f;              // Default damp time to change the animations based on current speed.
-    public string jumpButton = "Jump";              // Default jump button.
-    public float jumpHeight = 1.5f;                 // Default jump height.
-    public float jumpIntertialForce = 10f;          // Default horizontal inertial force when jumping.
+    public float walkSpeed = 0.15f;                 // Vitesse de marche par défaut.
+    public float runSpeed = 1.0f;                   // Vitesse de course par défaut.
+    public float sprintSpeed = 2.0f;                // Vitesse de sprint par défaut.
+    public float speedDampTime = 0.1f;              // Temps de transition pour changer d'animation en fonction de la vitesse.
+    public string jumpButton = "Jump";              // Bouton de saut par défaut.
+    public float jumpHeight = 1.5f;                 // Hauteur de saut par défaut.
+    public float jumpIntertialForce = 10f;          // Force inertielle horizontale pendant le saut.
 
-    private float speed, speedSeeker;               // Moving speed.
-    private int jumpBool;                           // Animator variable related to jumping.
-    private int groundedBool;                       // Animator variable related to whether or not the player is on ground.
-    private bool jump;                              // Boolean to determine whether or not the player started a jump.
-    private bool isColliding;                       // Boolean to determine if the player has collided with an obstacle.
+    public GameObject previewObject;                // Référence à l'objet de prévisualisation.
+    public Animator previewAnimator;               // Animator pour la prévisualisation.
 
-    public bool canMove = true; // Ajouter cette ligne pour `CanMove`
-    public float m_GravityMultiplier = 1f; // Ajouter cette ligne pour `m_GravityMultiplier`
+    public float speed, speedSeeker;               // Vitesse de déplacement.
+    private int jumpBool;                           // Variable d'animation pour le saut.
+    private int groundedBool;                       // Variable d'animation pour indiquer si le joueur est au sol.
+    private bool jump;                              // Détermine si le joueur a commencé à sauter.
+    private bool isColliding;                       // Détermine si le joueur entre en collision avec un obstacle.
 
-    // Start is always called after any Awake functions.
+    public bool canMove = true;                     // Permet ou non au joueur de se déplacer.
+    public float m_GravityMultiplier = 1f;          // Multiplicateur de gravité.
+
     void Start()
     {
-        // Set up the references.
+        // Initialiser les références des variables d'animation.
         jumpBool = Animator.StringToHash("Jump");
         groundedBool = Animator.StringToHash("Grounded");
         behaviourManager.GetAnim.SetBool(groundedBool, true);
 
-        // Subscribe and register this behaviour as the default behaviour.
+        previewObject = GameObject.FindGameObjectWithTag("PlayerPrewiew");
+        // Initialiser l'Animator de la prévisualisation si elle existe.
+        if (previewObject != null)
+        {
+            previewAnimator = previewObject.GetComponent<Animator>();
+            Debug.Log("Objet initialiser");
+        }
+
+        // S'abonner et enregistrer ce comportement comme comportement par défaut.
         behaviourManager.SubscribeBehaviour(this);
         behaviourManager.RegisterDefaultBehaviour(this.behaviourCode);
         speedSeeker = runSpeed;
     }
 
-    // Update is used to set features regardless the active behaviour.
+    // Update est utilisé pour mettre à jour les caractéristiques indépendamment du comportement actif.
     void Update()
     {
-        // Get jump input.
+        // Obtenir l'entrée pour le saut.
         if (!jump && Input.GetButtonDown(jumpButton) && behaviourManager.IsCurrentBehaviour(this.behaviourCode) && !behaviourManager.IsOverriding())
         {
             jump = true;
         }
 
-        // Update walking state in animation
+        // Mettre à jour l'état de marche dans l'animation.
         bool isWalking = Mathf.Abs(Input.GetAxis("Vertical")) > 0.1f || Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f;
-        behaviourManager.GetAnim.SetBool("IsWalking", isWalking); // Update walking animation parameter
+        behaviourManager.GetAnim.SetBool("IsWalking", isWalking); // Mettre à jour le paramètre d'animation pour la marche.
+
+        // Répliquer l'état de marche dans l'Animator de la prévisualisation.
+        if (previewAnimator != null)
+        {
+            previewAnimator.SetBool("IsWalking", isWalking);
+        }
     }
 
-    // LocalFixedUpdate overrides the virtual function of the base class.
+    // LocalFixedUpdate surcharge la fonction virtuelle de la classe de base.
     public override void LocalFixedUpdate()
     {
-        // Call the basic movement manager.
+        // Gérer le mouvement du joueur.
         MovementManagement(behaviourManager.GetH, behaviourManager.GetV);
 
-        // Call the jump manager.
+        // Gérer le saut.
         JumpManagement();
     }
 
-    // Execute the idle and walk/run jump movements.
+    // Gérer les mouvements de saut.
     void JumpManagement()
     {
-        // Start a new jump.
+        // Démarrer un nouveau saut.
         if (jump && !behaviourManager.GetAnim.GetBool(jumpBool) && behaviourManager.IsGrounded())
         {
-            // Set jump related parameters.
             behaviourManager.LockTempBehaviour(this.behaviourCode);
             behaviourManager.GetAnim.SetBool(jumpBool, true);
-            // Is a locomotion jump?
-            if (behaviourManager.GetAnim.GetFloat(speedFloat) > 0.1)
+
+            // Répliquer le saut dans l'Animator de la prévisualisation.
+            if (previewAnimator != null)
             {
-                // Temporarily change player friction to pass through obstacles.
+                previewAnimator.SetBool(jumpBool, true);
+            }
+
+            // Est-ce un saut en locomotion ?
+            if (behaviourManager.GetAnim.GetFloat(speedFloat) > 0.1f)
+            {
+                // Changer temporairement la friction pour passer à travers les obstacles.
                 GetComponent<CapsuleCollider>().material.dynamicFriction = 0f;
                 GetComponent<CapsuleCollider>().material.staticFriction = 0f;
-                // Remove vertical velocity to avoid "super jumps" on slope ends.
+
+                // Enlever la vélocité verticale pour éviter les "super sauts".
                 RemoveVerticalVelocity();
-                // Set jump vertical impulse velocity.
+
+                // Appliquer une impulsion verticale pour le saut.
                 float velocity = 2f * Mathf.Abs(Physics.gravity.y) * jumpHeight;
                 velocity = Mathf.Sqrt(velocity);
                 behaviourManager.GetRigidBody.AddForce(Vector3.up * velocity, ForceMode.VelocityChange);
             }
         }
-        // Is already jumping?
+        // Est-ce que le joueur est déjà en train de sauter ?
         else if (behaviourManager.GetAnim.GetBool(jumpBool))
         {
-            // Keep forward movement while in the air.
+            // Maintenir le mouvement vers l'avant pendant le saut.
             if (!behaviourManager.IsGrounded() && !isColliding && behaviourManager.GetTempLockStatus())
             {
                 behaviourManager.GetRigidBody.AddForce(transform.forward * jumpIntertialForce * Physics.gravity.magnitude * sprintSpeed, ForceMode.Acceleration);
             }
-            // Has landed?
+
+            // Le joueur a atterri ?
             if ((behaviourManager.GetRigidBody.velocity.y < 0) && behaviourManager.IsGrounded())
             {
                 behaviourManager.GetAnim.SetBool(groundedBool, true);
-                // Change back player friction to default.
+
+                // Répliquer l'atterrissage dans l'Animator de la prévisualisation.
+                if (previewAnimator != null)
+                {
+                    previewAnimator.SetBool(groundedBool, true);
+                }
+
+                // Réinitialiser la friction.
                 GetComponent<CapsuleCollider>().material.dynamicFriction = 0.6f;
                 GetComponent<CapsuleCollider>().material.staticFriction = 0.6f;
-                // Set jump related parameters.
+
+                // Réinitialiser les paramètres liés au saut.
                 jump = false;
                 behaviourManager.GetAnim.SetBool(jumpBool, false);
                 behaviourManager.UnlockTempBehaviour(this.behaviourCode);
+
+                // Répliquer la fin du saut dans la prévisualisation.
+                if (previewAnimator != null)
+                {
+                    previewAnimator.SetBool(jumpBool, false);
+                }
             }
         }
     }
 
-    // Deal with the basic player movement
+    // Gérer le mouvement de base du joueur.
     void MovementManagement(float horizontal, float vertical)
     {
-        if (!canMove)
-        {
-            return;
-        }
+        if (!canMove) return;
 
-        // On ground, obey gravity.
+        // Si le joueur est au sol, appliquer la gravité.
         if (behaviourManager.IsGrounded())
+        {
             behaviourManager.GetRigidBody.useGravity = true;
-
-        // Avoid takeoff when reached a slope end.
+        }
         else if (!behaviourManager.GetAnim.GetBool(jumpBool) && behaviourManager.GetRigidBody.velocity.y > 0)
         {
             RemoveVerticalVelocity();
         }
 
-        // Call function that deals with player orientation.
+        // Appeler la fonction pour gérer l'orientation du joueur.
         Rotating(horizontal, vertical);
 
-        // Set proper speed.
+        // Calculer la vitesse appropriée.
         Vector2 dir = new Vector2(horizontal, vertical);
         speed = Vector2.ClampMagnitude(dir, 1f).magnitude;
 
-        // Cette partie est pour les contrôles PC uniquement, les manettes contrôlent la vitesse via le stick analogique.
+        // Ajuster la vitesse selon la molette de la souris.
         speedSeeker += Input.GetAxis("Mouse ScrollWheel");
         speedSeeker = Mathf.Clamp(speedSeeker, walkSpeed, runSpeed);
         speed *= speedSeeker;
+
         if (behaviourManager.IsSprinting())
         {
             speed = sprintSpeed;
         }
 
+        // Mettre à jour la vitesse dans l'Animator.
         behaviourManager.GetAnim.SetFloat(speedFloat, speed, speedDampTime, Time.deltaTime);
+
+        // Répliquer la vitesse dans l'Animator de la prévisualisation.
+        if (previewAnimator != null)
+        {
+            previewAnimator.SetFloat(speedFloat, speed, speedDampTime, Time.deltaTime);
+        }
     }
 
-    // Remove vertical rigidbody velocity.
+    // Supprimer la vélocité verticale.
     private void RemoveVerticalVelocity()
     {
         Vector3 horizontalVelocity = behaviourManager.GetRigidBody.velocity;
@@ -148,32 +192,29 @@ public class MoveBehaviour : GenericBehaviour
         behaviourManager.GetRigidBody.velocity = horizontalVelocity;
     }
 
-    // Rotate the player to match correct orientation, according to camera and key pressed.
+    // Gérer l'orientation du joueur en fonction de la caméra et des touches appuyées.
     Vector3 Rotating(float horizontal, float vertical)
     {
-        // Get camera forward direction, without vertical component.
+        // Obtenir la direction avant de la caméra sans la composante verticale.
         Vector3 forward = behaviourManager.playerCamera.TransformDirection(Vector3.forward);
-
-        // Player is moving on ground, Y component of camera facing is not relevant.
         forward.y = 0.0f;
         forward = forward.normalized;
 
-        // Calculate target direction based on camera forward and direction key.
+        // Calculer la direction cible basée sur la caméra et la touche pressée.
         Vector3 right = new Vector3(forward.z, 0, -forward.x);
-        Vector3 targetDirection;
-        targetDirection = forward * vertical + right * horizontal;
+        Vector3 targetDirection = forward * vertical + right * horizontal;
 
-        // Lerp current direction to calculated target direction.
-        if ((behaviourManager.IsMoving() && targetDirection != Vector3.zero))
+        // Interpoler la rotation actuelle vers la direction cible.
+        if (behaviourManager.IsMoving() && targetDirection != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
-
             Quaternion newRotation = Quaternion.Slerp(behaviourManager.GetRigidBody.rotation, targetRotation, behaviourManager.turnSmoothing);
             behaviourManager.GetRigidBody.MoveRotation(newRotation);
             behaviourManager.SetLastDirection(targetDirection);
         }
-        // If idle, Ignore current camera facing and consider last moving direction.
-        if (!(Mathf.Abs(horizontal) > 0.9 || Mathf.Abs(vertical) > 0.9))
+
+        // Si le joueur est immobile, réinitialiser l'orientation selon la dernière direction.
+        if (!(Mathf.Abs(horizontal) > 0.9f || Mathf.Abs(vertical) > 0.9f))
         {
             behaviourManager.Repositioning();
         }
@@ -181,21 +222,102 @@ public class MoveBehaviour : GenericBehaviour
         return targetDirection;
     }
 
-    // Collision detection.
     private void OnCollisionStay(Collision collision)
     {
         isColliding = true;
-        // Slide on vertical obstacles
-        if (behaviourManager.IsCurrentBehaviour(this.GetBehaviourCode()) && collision.GetContact(0).normal.y <= 0.1f)
-        {
-            GetComponent<CapsuleCollider>().material.dynamicFriction = 0f;
-            GetComponent<CapsuleCollider>().material.staticFriction = 0f;
-        }
     }
+
     private void OnCollisionExit(Collision collision)
     {
         isColliding = false;
+    }
+
+    // Méthode pour arrêter tous les mouvements du joueur.
+    public void StopMovement()
+    {
+        canMove = false; // Désactiver la capacité à se déplacer.
+
+        // Réinitialiser la vitesse du joueur.
+        speed = 0;
+        behaviourManager.GetRigidBody.velocity = Vector3.zero;
+
+        // Arrêter les animations de mouvement.
+        behaviourManager.GetAnim.SetFloat(speedFloat, speed);
+        if (previewAnimator != null)
+        {
+            previewAnimator.SetFloat(speedFloat, speed);
+        }
+
+        // Réinitialiser les états de saut et de collision.
+        jump = false;
+        isColliding = false;
+
+        // Mettre à jour l'état de l'Animator pour refléter que le joueur est immobile.
+        behaviourManager.GetAnim.SetBool("IsWalking", false);
+        behaviourManager.GetAnim.SetBool(jumpBool, false);
+        behaviourManager.GetAnim.SetBool(groundedBool, true);
+
+        if (previewAnimator != null)
+        {
+            previewAnimator.SetBool("IsWalking", false);
+            previewAnimator.SetBool(jumpBool, false);
+            previewAnimator.SetBool(groundedBool, true);
+        }
+
+        // Réinitialiser les paramètres de friction du Collider.
         GetComponent<CapsuleCollider>().material.dynamicFriction = 0.6f;
         GetComponent<CapsuleCollider>().material.staticFriction = 0.6f;
+
+        // Réinitialiser la gravité si le joueur est en l'air.
+        if (!behaviourManager.IsGrounded())
+        {
+            behaviourManager.GetRigidBody.useGravity = true;
+        }
     }
+
+
+    // Méthode pour réactiver les mouvements du joueur.
+    public void ResumeMovement()
+    {
+        canMove = true; // Réactiver la capacité à se déplacer.
+
+        // Réinitialiser la vitesse du joueur.
+        speed = walkSpeed; // Par exemple, reprendre la vitesse de marche par défaut.
+        behaviourManager.GetRigidBody.velocity = Vector3.zero;
+
+        // Mettre à jour les animations pour refléter la capacité de mouvement.
+        behaviourManager.GetAnim.SetFloat(speedFloat, speed);
+        if (previewAnimator != null)
+        {
+            previewAnimator.SetFloat(speedFloat, speed);
+        }
+
+        // Réinitialiser les états de saut et de collision.
+        jump = false;
+        isColliding = false;
+
+        // Mettre à jour l'état de l'Animator pour refléter que le joueur est prêt à marcher.
+        behaviourManager.GetAnim.SetBool("IsWalking", true);
+        behaviourManager.GetAnim.SetBool(jumpBool, false);
+        behaviourManager.GetAnim.SetBool(groundedBool, true);
+
+        if (previewAnimator != null)
+        {
+            previewAnimator.SetBool("IsWalking", true);
+            previewAnimator.SetBool(jumpBool, false);
+            previewAnimator.SetBool(groundedBool, true);
+        }
+
+        // Réinitialiser les paramètres de friction du Collider.
+        GetComponent<CapsuleCollider>().material.dynamicFriction = 0.6f;
+        GetComponent<CapsuleCollider>().material.staticFriction = 0.6f;
+
+        // Réinitialiser la gravité si nécessaire.
+        if (!behaviourManager.IsGrounded())
+        {
+            behaviourManager.GetRigidBody.useGravity = true;
+        }
+    }
+
+
 }
